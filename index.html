@@ -19,10 +19,12 @@
 <div id="auth" style="display:none;"></div>
 <div id="panel" style="display:none;"></div>
 
-<!-- Firebase -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+
 <script>
+  // ✅ SENİN FIREBASE BİLGİLERİNLE DOLU
   const firebaseConfig = {
     apiKey: "AIzaSyCM1pWcrXjAeS533IzwL9PYFypGsQduxtM",
     authDomain: "gamele64-a763d.firebaseapp.com",
@@ -33,11 +35,11 @@
     appId: "1:352731891861:web:9f76132af9c8d431adf39c",
     measurementId: "G-7X68Z0G9QF"
   };
+
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
   let role = "", sessionCode = "";
-
   const keys = ['A','B','X','Y','↑','↓','←','→'];
 
   function selectRole(r) {
@@ -57,6 +59,7 @@
         <button onclick="joinSession()">Giriş</button>
       `;
     }
+
     document.getElementById("auth").style.display = "block";
   }
 
@@ -81,6 +84,7 @@
       if (role === "phone") {
         btn.onclick = () => {
           db.ref("sessions/" + sessionCode).set({ key: k });
+          console.log("Gönderildi:", k);
         };
       }
       document.getElementById("panel").appendChild(btn);
@@ -94,8 +98,12 @@
       document.querySelectorAll(".btn").forEach(b => {
         b.classList.toggle("highlight", b.innerText === val);
       });
+      console.log("Gelen tuş:", val);
     });
   }
+
+  // Firebase test log
+  console.log("Firebase bağlantısı OK:", firebase.app().name);
 </script>
 </body>
 </html>
