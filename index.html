@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Gamepad Remote</title>
+  <title>Gamepad Sync</title>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
     .btn { width: 60px; height: 60px; margin: 10px; font-size: 20px; }
@@ -85,14 +85,14 @@
       panel.appendChild(btn);
     });
     if(currentRole === 'phone' || currentRole === 'pc') {
-      document.getElementById('panel').style.display = 'flex';
+      panel.style.display = 'flex';
     }
   }
 
   function joinSession() {
     const code = document.getElementById('codeInput').value;
-    if(code.length !==4) {
-      alert('Lütfen 4 haneli kod girin!');
+    if(code.length !== 4) {
+      alert('4 haneli kod gir!');
       return;
     }
     sessionCode = code;
@@ -115,6 +115,8 @@
       console.log("Gelen tuş:", val);
     });
   }
+
+  console.log("Firebase hazır:", firebase.app().name);
 </script>
 </body>
 </html>
