@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Gamepad Sync</title>
+  <title>Gamepad Firebase</title>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
     .btn { width: 60px; height: 60px; margin: 10px; font-size: 20px; }
@@ -21,7 +21,6 @@
 <div id="auth" style="display:none;"></div>
 <div id="panel" style="display:none;"></div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
 
@@ -40,9 +39,9 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  let role = "";
-  let sessionCode = "";
   const keys = ['A','B','X','Y','↑','↓','←','→'];
+  let role = '';
+  let sessionCode = '';
 
   function selectRole(r) {
     role = r;
@@ -84,9 +83,7 @@
       }
       panel.appendChild(btn);
     });
-    if(currentRole === 'phone' || currentRole === 'pc') {
-      panel.style.display = 'flex';
-    }
+    panel.style.display = 'flex';
   }
 
   function joinSession() {
@@ -115,8 +112,7 @@
       console.log("Gelen tuş:", val);
     });
   }
-
-  console.log("Firebase hazır:", firebase.app().name);
 </script>
+
 </body>
 </html>
