@@ -1,118 +1,22 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Gamepad Firebase</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-    .btn { width: 60px; height: 60px; margin: 10px; font-size: 20px; }
-    .highlight { background-color: red; color: white; }
-    #panel { display: flex; flex-wrap: wrap; justify-content: center; max-width: 300px; margin: 20px auto; }
-  </style>
-</head>
-<body>
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-<h1 id="title">Telefon mu PC mi?</h1>
-<div id="choiceButtons">
-  <button onclick="selectRole('phone')">Telefon</button>
-  <button onclick="selectRole('pc')">PC</button>
-</div>
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCM1pWcrXjAeS533IzwL9PYFypGsQduxtM",
+  authDomain: "gamele64-a763d.firebaseapp.com",
+  databaseURL: "https://gamele64-a763d-default-rtdb.firebaseio.com",
+  projectId: "gamele64-a763d",
+  storageBucket: "gamele64-a763d.firebasestorage.app",
+  messagingSenderId: "352731891861",
+  appId: "1:352731891861:web:9f76132af9c8d431adf39c",
+  measurementId: "G-7X68Z0G9QF"
+};
 
-<div id="auth" style="display:none;"></div>
-<div id="panel" style="display:none;"></div>
-
-<script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCM1pWcrXjAeS533IzwL9PYFypGsQduxtM",
-    authDomain: "gamele64-a763d.firebaseapp.com",
-    databaseURL: "https://gamele64-a763d-default-rtdb.firebaseio.com",
-    projectId: "gamele64-a763d",
-    storageBucket: "gamele64-a763d.firebasestorage.app",
-    messagingSenderId: "352731891861",
-    appId: "1:352731891861:web:9f76132af9c8d431adf39c",
-    measurementId: "G-7X68Z0G9QF"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  const keys = ['A','B','X','Y','↑','↓','←','→'];
-  let role = '';
-  let sessionCode = '';
-
-  function selectRole(r) {
-    role = r;
-    document.getElementById('title').style.display = 'none';
-    document.getElementById('choiceButtons').style.display = 'none';
-
-    const authDiv = document.getElementById('auth');
-    const panelDiv = document.getElementById('panel');
-
-    if(role === 'phone') {
-      sessionCode = Math.floor(1000 + Math.random()*9000).toString();
-      db.ref("sessions/" + sessionCode).set({ key: "" });
-      authDiv.innerHTML = `<h2>Kod: <b>${sessionCode}</b></h2>`;
-      renderGamepad('phone');
-    } else {
-      authDiv.innerHTML = `
-        <h2>Kodu Gir:</h2>
-        <input id="codeInput" maxlength="4" />
-        <button onclick="joinSession()">Giriş</button>
-      `;
-    }
-
-    authDiv.style.display = 'block';
-    panelDiv.style.display = (role === 'phone') ? 'flex' : 'none';
-  }
-
-  function renderGamepad(currentRole) {
-    const panel = document.getElementById('panel');
-    panel.innerHTML = '';
-    keys.forEach(key => {
-      const btn = document.createElement('button');
-      btn.className = 'btn';
-      btn.innerText = key;
-      if(currentRole === 'phone') {
-        btn.onclick = () => {
-          db.ref("sessions/" + sessionCode).set({ key: key });
-          console.log("Gönderildi:", key);
-        };
-      }
-      panel.appendChild(btn);
-    });
-    panel.style.display = 'flex';
-  }
-
-  function joinSession() {
-    const code = document.getElementById('codeInput').value;
-    if(code.length !== 4) {
-      alert('4 haneli kod gir!');
-      return;
-    }
-    sessionCode = code;
-    db.ref("sessions/" + sessionCode).once("value", snap => {
-      if(snap.exists()) {
-        renderGamepad('pc');
-        listenKeys();
-      } else {
-        alert('Kod bulunamadı!');
-      }
-    });
-  }
-
-  function listenKeys() {
-    db.ref("sessions/" + sessionCode + "/key").on('value', snap => {
-      const val = snap.val();
-      document.querySelectorAll(".btn").forEach(b => {
-        b.classList.toggle('highlight', b.innerText === val);
-      });
-      console.log("Gelen tuş:", val);
-    });
-  }
-</script>
-
-</body>
-</html>
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
