@@ -1,22 +1,543 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uzak Gamepad</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter font for a modern look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        .container {
+            background-color: #2d3748; /* Slightly lighter dark background for container */
+            border-radius: 1.5rem; /* More rounded corners */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); /* Deeper shadow */
+            padding: 2.5rem;
+            text-align: center;
+            max-width: 90%; /* Responsive width */
+            width: 500px; /* Max width for desktop */
+            animation: fadeIn 0.8s ease-out; /* Fade in animation */
+            position: relative;
+            z-index: 10;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .button-primary {
+            background-color: #4299e1; /* Blue */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem; /* Rounded */
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .button-primary:hover {
+            background-color: #3182ce; /* Darker blue on hover */
+            transform: translateY(-2px); /* Lift effect */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+        .button-secondary {
+            background-color: #a0aec0; /* Gray */
+            color: #2d3748;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .button-secondary:hover {
+            background-color: #718096; /* Darker gray on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+        input[type="text"] {
+            background-color: #4a5568; /* Darker input background */
+            border: 1px solid #6b7280;
+            color: #e2e8f0;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            width: calc(100% - 2rem); /* Adjust for padding */
+            max-width: 300px;
+            margin-bottom: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4299e1; /* Blue border on focus */
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+        }
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCM1pWcrXjAeS533IzwL9PYFypGsQduxtM",
-  authDomain: "gamele64-a763d.firebaseapp.com",
-  databaseURL: "https://gamele64-a763d-default-rtdb.firebaseio.com",
-  projectId: "gamele64-a763d",
-  storageBucket: "gamele64-a763d.firebasestorage.app",
-  messagingSenderId: "352731891861",
-  appId: "1:352731891861:web:9f76132af9c8d431adf39c",
-  measurementId: "G-7X68Z0G9QF"
-};
+        /* Gamepad specific styles */
+        .gamepad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .gamepad-button {
+            background-color: #63b3ed; /* Light blue */
+            color: white;
+            padding: 1.5rem;
+            border-radius: 50%; /* Circular buttons */
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            user-select: none; /* Prevent text selection on tap */
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
+        }
+        .gamepad-button:active {
+            background-color: #3182ce; /* Darker blue on active */
+            transform: scale(0.95); /* Slight press effect */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        /* D-pad specific positioning */
+        .gamepad-button.up { grid-area: 1 / 2 / 2 / 3; }
+        .gamepad-button.left { grid-area: 2 / 1 / 3 / 2; }
+        .gamepad-button.center { grid-area: 2 / 2 / 3 / 3; background-color: transparent; box-shadow: none; cursor: default;}
+        .gamepad-button.right { grid-area: 2 / 3 / 3 / 4; }
+        .gamepad-button.down { grid-area: 3 / 2 / 4 / 3; }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 2rem;
+            gap: 1rem;
+        }
+        .action-button {
+            background-color: #f6ad55; /* Orange */
+            color: white;
+            padding: 1.5rem;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: bold;
+            width: 70px; /* Fixed size for action buttons */
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .action-button:active {
+            background-color: #dd6b20; /* Darker orange on active */
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Loading spinner */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #4299e1; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Message box for alerts */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2d3748;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .message-box p {
+            font-size: 1.1rem;
+            color: #e2e8f0;
+        }
+        .message-box button {
+            background-color: #4299e1;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .message-box button:hover {
+            background-color: #3182ce;
+        }
+    </style>
+</head>
+<body>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, remove, off } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // Firebase configuration provided by the user
+        const firebaseConfig = {
+            apiKey: "AIzaSyCM1pWcrXjAeS533IzwL9PYFypGsQduxtM",
+            authDomain: "gamele64-a763d.firebaseapp.com",
+            databaseURL: "https://gamele64-a763d-default-rtdb.firebaseio.com",
+            projectId: "gamele64-a763d",
+            storageBucket: "gamele64-a763d.firebasestorage.app",
+            messagingSenderId: "352731891861",
+            appId: "1:352731891861:web:9f76132af9c8d431adf39c",
+            measurementId: "G-7X68Z0G9QF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        // Global variables for Firebase instances and user ID
+        let currentUserId = null;
+        let isFirebaseReady = false;
+
+        // Function to show custom message box
+        function showMessageBox(message) {
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            messageText.textContent = message;
+            messageBox.style.display = 'flex';
+        }
+
+        // Function to hide custom message box
+        function hideMessageBox() {
+            document.getElementById('messageBox').style.display = 'none';
+        }
+
+        // Authenticate user
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // Sign in anonymously if no user is logged in
+                try {
+                    // Use __initial_auth_token if available, otherwise sign in anonymously
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase kimlik doğrulama hatası:", error);
+                    showMessageBox("Firebase kimlik doğrulama hatası: " + error.message);
+                }
+            }
+            currentUserId = auth.currentUser?.uid || crypto.randomUUID(); // Use UID if authenticated, else a random ID
+            isFirebaseReady = true;
+            console.log("Firebase hazır. Kullanıcı ID:", currentUserId);
+            // After Firebase is ready, show the initial choice screen
+            document.getElementById('initial-choice').style.display = 'block';
+            document.getElementById('loader').style.display = 'none';
+        });
+
+        // Get DOM elements
+        const initialChoiceDiv = document.getElementById('initial-choice');
+        const pcScreenDiv = document.getElementById('pc-screen');
+        const phoneScreenDiv = document.getElementById('phone-screen');
+        const pcCodeDisplay = document.getElementById('pc-code');
+        const phoneCodeInput = document.getElementById('phone-code-input');
+        const connectButton = document.getElementById('connect-button');
+        const gamepadControlsDiv = document.getElementById('gamepad-controls');
+        const loader = document.getElementById('loader');
+        const pcStatusText = document.getElementById('pc-status-text');
+
+        let sessionCode = null;
+        let pcRef = null;
+        let phoneRef = null;
+        let commandsRef = null;
+
+        // Function to generate a random 6-digit code
+        function generateCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        // Function to handle PC mode
+        async function startPCMode() {
+            initialChoiceDiv.style.display = 'none';
+            pcScreenDiv.style.display = 'block';
+            loader.style.display = 'block';
+
+            sessionCode = generateCode();
+            pcCodeDisplay.textContent = sessionCode;
+
+            // Define Firebase paths
+            pcRef = ref(db, `game_sessions/${sessionCode}/pc_status`);
+            commandsRef = ref(db, `game_sessions/${sessionCode}/phone_commands`);
+            phoneRef = ref(db, `game_sessions/${sessionCode}/phone_status`); // To detect phone connection
+
+            try {
+                // Set PC status to connected
+                await set(pcRef, { status: "connected", userId: currentUserId });
+                console.log("PC modu başlatıldı. Kod:", sessionCode);
+                pcStatusText.textContent = `Kodunuz: ${sessionCode}. Telefon bağlantısı bekleniyor...`;
+
+                // Listen for phone connection
+                onValue(phoneRef, (snapshot) => {
+                    const phoneStatus = snapshot.val();
+                    if (phoneStatus && phoneStatus.status === "connected") {
+                        pcStatusText.textContent = `Kodunuz: ${sessionCode}. Telefon bağlandı! Komutlar bekleniyor...`;
+                        console.log("Telefon bağlandı.");
+                        loader.style.display = 'none';
+                        // Start listening for gamepad commands
+                        listenForGamepadCommands();
+                    } else {
+                        pcStatusText.textContent = `Kodunuz: ${sessionCode}. Telefon bağlantısı bekleniyor...`;
+                        console.log("Telefon bağlantısı kesildi veya bekleniyor.");
+                    }
+                });
+
+                // Set up a listener for commands from the phone
+                function listenForGamepadCommands() {
+                    onValue(commandsRef, (snapshot) => {
+                        const commands = snapshot.val();
+                        if (commands) {
+                            console.log("Gamepad komutları alındı:", commands);
+                            // Here you would integrate with your game/application
+                            // For demonstration, we'll just log them and update a simple display
+                            document.getElementById('received-commands').textContent = JSON.stringify(commands, null, 2);
+                        }
+                    });
+                }
+
+                // Clean up Firebase on window unload
+                window.addEventListener('beforeunload', async () => {
+                    if (pcRef) {
+                        await remove(ref(db, `game_sessions/${sessionCode}`)); // Remove the entire session
+                        console.log("PC oturumu temizlendi.");
+                    }
+                });
+
+            } catch (error) {
+                console.error("PC modunu başlatırken hata:", error);
+                showMessageBox("PC modunu başlatırken hata: " + error.message);
+                loader.style.display = 'none';
+            }
+        }
+
+        // Function to handle Phone mode
+        async function startPhoneMode() {
+            initialChoiceDiv.style.display = 'none';
+            phoneScreenDiv.style.display = 'block';
+        }
+
+        // Event listeners for initial choice buttons
+        document.getElementById('pc-button').addEventListener('click', () => {
+            if (isFirebaseReady) {
+                startPCMode();
+            } else {
+                showMessageBox("Firebase henüz hazır değil. Lütfen bekleyin.");
+            }
+        });
+
+        document.getElementById('phone-button').addEventListener('click', () => {
+            if (isFirebaseReady) {
+                startPhoneMode();
+            } else {
+                showMessageBox("Firebase henüz hazır değil. Lütfen bekleyin.");
+            }
+        });
+
+        // Phone: Connect button logic
+        connectButton.addEventListener('click', async () => {
+            const enteredCode = phoneCodeInput.value.trim();
+            if (enteredCode.length === 0) {
+                showMessageBox("Lütfen bir kod girin.");
+                return;
+            }
+
+            loader.style.display = 'block';
+            sessionCode = enteredCode;
+
+            // Check if the PC session exists
+            const pcStatusCheckRef = ref(db, `game_sessions/${sessionCode}/pc_status`);
+            onValue(pcStatusCheckRef, async (snapshot) => {
+                const pcStatus = snapshot.val();
+                if (pcStatus && pcStatus.status === "connected") {
+                    console.log("PC oturumu bulundu. Bağlanılıyor...");
+                    phoneScreenDiv.style.display = 'none';
+                    gamepadControlsDiv.style.display = 'block';
+                    loader.style.display = 'none';
+
+                    // Set phone status to connected
+                    phoneRef = ref(db, `game_sessions/${sessionCode}/phone_status`);
+                    commandsRef = ref(db, `game_sessions/${sessionCode}/phone_commands`);
+                    try {
+                        await set(phoneRef, { status: "connected", userId: currentUserId });
+                        console.log("Telefon başarıyla bağlandı.");
+                        showMessageBox("Başarıyla bağlandı! Gamepad kontrolleri hazır.");
+                    } catch (error) {
+                        console.error("Telefon bağlantı hatası:", error);
+                        showMessageBox("Telefon bağlantı hatası: " + error.message);
+                        loader.style.display = 'none';
+                    }
+                } else {
+                    showMessageBox("Geçersiz kod veya PC oturumu bulunamadı.");
+                    loader.style.display = 'none';
+                }
+                // Detach listener after initial check to avoid re-triggering
+                off(pcStatusCheckRef);
+            }, { onlyOnce: true }); // Listen only once for the initial check
+        });
+
+        // Gamepad controls logic for phone
+        const gamepadButtons = document.querySelectorAll('.gamepad-button, .action-button');
+
+        // Function to send command to Firebase
+        async function sendCommand(command, value) {
+            if (commandsRef) {
+                try {
+                    // Update only the specific command
+                    await set(ref(db, `game_sessions/${sessionCode}/phone_commands/${command}`), value);
+                    // console.log(`Komut gönderildi: ${command}: ${value}`);
+                } catch (error) {
+                    console.error("Komut gönderirken hata:", error);
+                    // showMessageBox("Komut gönderirken hata: " + error.message); // Too many alerts
+                }
+            } else {
+                console.warn("Komut referansı ayarlanmadı. Bağlantı yok.");
+            }
+        }
+
+        gamepadButtons.forEach(button => {
+            const command = button.dataset.command;
+            if (command) {
+                // For touch devices
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault(); // Prevent default touch behavior like scrolling
+                    sendCommand(command, true);
+                    button.classList.add('active'); // Add active class for visual feedback
+                });
+                button.addEventListener('touchend', () => {
+                    sendCommand(command, false);
+                    button.classList.remove('active');
+                });
+
+                // For mouse devices (for testing on desktop)
+                button.addEventListener('mousedown', () => {
+                    sendCommand(command, true);
+                    button.classList.add('active');
+                });
+                button.addEventListener('mouseup', () => {
+                    sendCommand(command, false);
+                    button.classList.remove('active');
+                });
+                button.addEventListener('mouseleave', () => { // If mouse leaves while pressed
+                    sendCommand(command, false);
+                    button.classList.remove('active');
+                });
+            }
+        });
+
+        // Close message box button
+        document.getElementById('closeMessageBox').addEventListener('click', hideMessageBox);
+
+    </script>
+
+    <!-- Main container for the application -->
+    <div class="container">
+        <!-- Initial choice screen -->
+        <div id="initial-choice" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-white">Cihazınızı Seçin</h1>
+            <p class="text-lg mb-8 text-gray-300">Bu cihazı ne olarak kullanmak istersiniz?</p>
+            <div class="flex flex-col md:flex-row justify-center gap-6">
+                <button id="pc-button" class="button-primary flex-1">
+                    <span class="text-2xl">💻</span> PC (Oyun Ekranı)
+                </button>
+                <button id="phone-button" class="button-primary flex-1">
+                    <span class="text-2xl">📱</span> Telefon (Gamepad)
+                </button>
+            </div>
+        </div>
+
+        <!-- PC Screen -->
+        <div id="pc-screen" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-white">PC Modu</h1>
+            <p class="text-lg mb-4 text-gray-300">Telefonunuzdan bağlanmak için bu kodu kullanın:</p>
+            <div class="bg-gray-700 text-white text-4xl font-mono py-4 px-6 rounded-xl mb-6 tracking-widest">
+                <span id="pc-code">Yükleniyor...</span>
+            </div>
+            <p id="pc-status-text" class="text-xl text-yellow-400 mb-4">Bağlantı bekleniyor...</p>
+            <div class="loader" id="loader"></div>
+            <div class="bg-gray-800 p-4 rounded-lg text-left text-sm text-gray-400 mt-6">
+                <p class="font-bold text-white mb-2">Alınan Komutlar (Demo):</p>
+                <pre id="received-commands" class="whitespace-pre-wrap break-words"></pre>
+            </div>
+        </div>
+
+        <!-- Phone Screen (Code Input) -->
+        <div id="phone-screen" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-white">Telefon Modu</h1>
+            <p class="text-lg mb-4 text-gray-300">PC ekranınızdaki kodu girin:</p>
+            <input type="text" id="phone-code-input" placeholder="6 haneli kodu girin" maxlength="6" class="text-center">
+            <button id="connect-button" class="button-primary w-full">Bağlan</button>
+            <div class="loader" id="loader"></div>
+        </div>
+
+        <!-- Gamepad Controls (Phone) -->
+        <div id="gamepad-controls" class="hidden">
+            <h1 class="text-3xl font-bold mb-6 text-white">Gamepad</h1>
+            <p class="text-lg mb-4 text-gray-300">PC'nizi kontrol etmek için tuşlara basın.</p>
+
+            <!-- D-pad -->
+            <div class="gamepad-grid">
+                <div class="gamepad-button up" data-command="up">▲</div>
+                <div class="gamepad-button left" data-command="left">◀</div>
+                <div class="gamepad-button center"></div> <!-- Center placeholder -->
+                <div class="gamepad-button right" data-command="right">▶</div>
+                <div class="gamepad-button down" data-command="down">▼</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <div class="action-button" data-command="actionA">A</div>
+                <div class="action-button" data-command="actionB">B</div>
+                <div class="action-button" data-command="actionX">X</div>
+                <div class="action-button" data-command="actionY">Y</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Message Box -->
+    <div id="messageBox" class="message-box">
+        <p id="messageText" class="mb-4"></p>
+        <button id="closeMessageBox" class="button-primary">Tamam</button>
+    </div>
+
+</body>
+</html>
